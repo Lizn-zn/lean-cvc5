@@ -11,7 +11,7 @@ package cvc5 {
   moreGlobalServerArgs := #[s!"--load-dynlib={libcpp}"]
   extraDepTargets := #[`libcvc5]
   -- TODO: make this cross-platform, see https://github.com/ufmg-smite/lean-smt/issues/118
-  -- moreLinkArgs := #["/usr/lib/x86_64-linux-gnu/libstdc++.so.6"]
+  moreLinkArgs := #["/usr/lib/x86_64-linux-gnu/libstdc++.so.6"]
 }
 
 @[default_target]
