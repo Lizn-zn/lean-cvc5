@@ -10,6 +10,8 @@ package cvc5 {
   precompileModules := true
   moreGlobalServerArgs := #[s!"--load-dynlib={libcpp}"]
   extraDepTargets := #[`libcvc5]
+  -- TODO: make this cross-platform, see https://github.com/ufmg-smite/lean-smt/issues/118
+  moreLinkArgs := #["/usr/lib/x86_64-linux-gnu/libstdc++.so.6"]
 }
 
 @[default_target]
@@ -44,12 +46,35 @@ def cvc5.arch :=
 
 def cvc5.target := s!"{os}-{arch}-static"
 
+open IO.Process in
+def generateEnums (cppDir : Lake.FilePath) (pkg : NPackage _package.name) : IO Unit := do
+  let { exitCode, stdout, stderr } ← output {
+    cmd := "lean"
+    args := #[
+      "--run", (pkg.srcDir / "PreBuild.lean").toString,
+      "--", -- arguments for `PreBuild.lean` binary: C++ source dir and lean target dir
+      cppDir.toString, (pkg.srcDir / "cvc5").toString
+    ]
+  }
+  if 0 < exitCode then
+    throw <| .userError s!"C++ to Lean `enum` translation failed with exit code `{exitCode}`:\n\n\
+```stdout
+{stdout}
+```
+
+```stderr
+{stderr}
+```\
+    "
+
 target libcvc5 pkg : Unit := do
   if !(← (pkg.lakeDir / s!"cvc5-{cvc5.target}").pathExists) then
     let zipPath := pkg.lakeDir / s!"cvc5-{cvc5.target}.zip"
     download s!"{cvc5.url}/{cvc5.version}/cvc5-{cvc5.target}.zip" zipPath
     unzip zipPath pkg.lakeDir
     IO.FS.removeFile zipPath
+    let cvc5Root := pkg.lakeDir / s!"cvc5-{cvc5.target}" / "include" / "cvc5"
+    generateEnums cvc5Root pkg
   return pure ()
 
 def Lake.compileStaticLib'
