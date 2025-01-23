@@ -31,27 +31,12 @@ def Lake.unzip (file : FilePath) (dir : FilePath) : LogIO PUnit := do
     args := #["-d", dir.toString, file.toString]
   }
 
-def cvc5.url := "https://github.com/abdoo8080/cvc5/releases/download"
-
-def cvc5.version := "cvc5-1.2.1"
-
-def cvc5.os :=
-  if System.Platform.isWindows then "Win64"
-  else if System.Platform.isOSX then "macOS"
-  else "Linux"
-
-def cvc5.arch :=
-  if System.Platform.target.startsWith "x86_64" then "x86_64"
-  else "arm64"
-
-def cvc5.target := s!"{os}-{arch}-static"
+def cvc5.path := "cvc5-Linux-x86_64-static"
 
 target libcvc5 pkg : Unit := do
-  if !(← (pkg.lakeDir / s!"cvc5-{cvc5.target}").pathExists) then
-    let zipPath := pkg.lakeDir / s!"cvc5-{cvc5.target}.zip"
-    download s!"{cvc5.url}/{cvc5.version}/cvc5-{cvc5.target}.zip" zipPath
+  if !(← (pkg.lakeDir / s!"{cvc5.path}").pathExists) then
+    let zipPath := s!"{cvc5.path}.zip"
     unzip zipPath pkg.lakeDir
-    IO.FS.removeFile zipPath
   return pure ()
 
 def Lake.compileStaticLib'
@@ -77,7 +62,7 @@ target ffiO pkg : FilePath := do
   let flags := #[
     "-std=c++17",
     "-I", (← getLeanIncludeDir).toString,
-    "-I", (pkg.lakeDir / s!"cvc5-{cvc5.target}" / "include").toString,
+    "-I", (pkg.lakeDir / s!"{cvc5.path}" / "include").toString,
     "-fPIC"
   ]
   buildO oFile srcJob flags
@@ -87,7 +72,7 @@ extern_lib libffi pkg := do
   let libFile := pkg.nativeLibDir / name
   let ffiO ← fetch (pkg.target ``ffiO)
   let staticLibPath (lib : String) :=
-    pkg.lakeDir / s!"cvc5-{cvc5.target}" / "lib" / nameToStaticLib lib
+    pkg.lakeDir / s!"{cvc5.path}" / "lib" / nameToStaticLib lib
   let libcadical := pure (staticLibPath "cadical")
   let libcvc5 := pure (staticLibPath "cvc5")
   let libcvc5parser := pure (staticLibPath "cvc5parser")
