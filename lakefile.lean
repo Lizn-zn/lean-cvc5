@@ -31,10 +31,10 @@ def Lake.unzip (file : FilePath) (dir : FilePath) : LogIO PUnit := do
     args := #["-d", dir.toString, file.toString]
   }
 
-def cvc5.path := "cvc5-Linux-x86_64-static"
+def cvc5.path := "././.lake/packages/cvc5/cvc5-Linux-x86_64-static"
 
 target libcvc5 pkg : Unit := do
-  if !(← (pkg.lakeDir / s!"{cvc5.path}").pathExists) then
+  if !(← (pkg.lakeDir / "cvc5-Linux-x86_64-static").pathExists) then
     let zipPath := s!"{cvc5.path}.zip"
     unzip zipPath pkg.lakeDir
   return pure ()
@@ -62,7 +62,7 @@ target ffiO pkg : FilePath := do
   let flags := #[
     "-std=c++17",
     "-I", (← getLeanIncludeDir).toString,
-    "-I", (pkg.lakeDir / s!"{cvc5.path}" / "include").toString,
+    "-I", (pkg.lakeDir / "cvc5-Linux-x86_64-static" / "include").toString,
     "-fPIC"
   ]
   buildO oFile srcJob flags
@@ -72,7 +72,7 @@ extern_lib libffi pkg := do
   let libFile := pkg.nativeLibDir / name
   let ffiO ← fetch (pkg.target ``ffiO)
   let staticLibPath (lib : String) :=
-    pkg.lakeDir / s!"{cvc5.path}" / "lib" / nameToStaticLib lib
+    pkg.lakeDir / "cvc5-Linux-x86_64-static" / "lib" / nameToStaticLib lib
   let libcadical := pure (staticLibPath "cadical")
   let libcvc5 := pure (staticLibPath "cvc5")
   let libcvc5parser := pure (staticLibPath "cvc5parser")
